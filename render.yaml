@@ -1,0 +1,21 @@
+services:
+  # FastAPI backend — Swagger UI at /docs, ReDoc at /redoc, API at /api/*
+  - type: web
+    name: zameen-vivaad-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /health
+
+  # Streamlit frontend — basic input UI
+  - type: web
+    name: zameen-vivaad-ui
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
