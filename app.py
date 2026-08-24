@@ -2,11 +2,12 @@
 Zameen Vivaad — FastAPI backend for Land Acquisition Delay Prediction.
 
 Endpoints:
-  GET  /docs        → Swagger UI (interactive API docs)
-  GET  /redoc       → ReDoc (API docs)
-  GET  /health      → Health check
-  POST /api/predict  → Predict risk & delay
-  GET  /api/features → List input features & valid options
+  GET  /docs           → Swagger UI (interactive API docs)
+  GET  /redoc          → ReDoc (API docs)
+  GET  /health         → Health check
+  POST /api/predict    → Predict risk & delay
+  GET  /api/features   → List input features & valid options
+  POST /api/recommend  → Get AI-generated recommendations to reduce land dispute
 """
 
 import os
@@ -17,6 +18,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
+from dotenv import load_dotenv
+from groq import Groq
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # App
@@ -142,12 +147,57 @@ class PredictionResponse(BaseModel):
     risk_probabilities: dict
 
 
+class RecommendRequest(BaseModel):
+    """Project input data + predicted risk label for generating AI recommendations."""
+    project: ProjectInput
+    risk_category: str = Field(..., description="Predicted risk category: Low, Medium, or High")
+    delay_probability: float = Field(..., description="Predicted delay probability (0-1)")
+
+
+class RecommendResponse(BaseModel):
+    risk_category: str
+    recommendations: list[str]
+
+
+# ---------------------------------------------------------------------------
+# Groq client
+# ---------------------------------------------------------------------------
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+
+def build_recommendation_prompt(project: ProjectInput, risk_category: str, delay_probability: float) -> str:
+    """Build a structured prompt for the LLM."""
+    return f"""You are an expert consultant in land acquisition, infrastructure project management, and conflict resolution in India.
+
+A land acquisition project has been assessed by an AI system and classified as **{risk_category} Risk** with a delay probability of **{delay_probability * 100:.1f}%**.
+
+Here are the project details:
+- State: {project.state}, District: {project.district}
+- Project Type: {project.project_type}
+- Land Area: {project.land_area_hectares} hectares, Affected Families: {project.affected_families}
+- Compensation Status: {project.compensation_status} ({project.compensation_disbursed_pct:.1f}% disbursed)
+- Approval Stage: {project.approval_stage}
+- Days Since Notification: {project.days_since_notification}
+- Legal Disputes: {project.legal_disputes_count} ({project.legal_dispute_status or 'None'})
+- Possession Status: {project.possession_status}
+- Rehabilitation Progress: {project.rehabilitation_progress_pct:.1f}%
+- Stakeholder Responsiveness Score: {project.stakeholder_responsiveness_score}/10
+- Historical District Delay Rate: {project.historical_district_delay_rate * 100:.1f}%
+- Inter-Department Coordination Issues: {project.inter_department_coordination_issues}
+- Planned Duration: {project.planned_duration_days} days, Project Age: {project.project_age_days} days
+
+Based on the **{risk_category} Risk** classification and the specific project parameters above, provide exactly 5 concise, actionable recommendations to reduce the land acquisition dispute and delay risk. 
+
+Format your response as a numbered list (1. 2. 3. 4. 5.). Each recommendation should be specific to this project's data, not generic advice. Keep each point to 1-2 sentences."""
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "models_loaded": MODELS_LOADED}
+    return {"status": "healthy", "models_loaded": MODELS_LOADED, "ai_recommendations": groq_client is not None}
 
 
 @app.get("/api/features")
@@ -189,3 +239,41 @@ async def predict(project: ProjectInput):
         )
     except Exception as e:
         raise HTTPException(500, f"Prediction failed: {e}")
+
+
+@app.post("/api/recommend", response_model=RecommendResponse)
+async def recommend(req: RecommendRequest):
+    """Generate AI-powered recommendations to reduce land dispute risk."""
+    if not groq_client:
+        raise HTTPException(503, "Groq API key not configured. Set GROQ_API_KEY in your .env file.")
+
+    prompt = build_recommendation_prompt(req.project, req.risk_category, req.delay_probability)
+
+    try:
+        chat = groq_client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {"role": "system", "content": "You are a land acquisition and conflict resolution expert for Indian infrastructure projects."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.4,
+            max_tokens=600,
+        )
+        raw = chat.choices[0].message.content.strip()
+
+        # Parse numbered list into individual recommendations
+        lines = [line.strip() for line in raw.split("\n") if line.strip()]
+        recommendations = [
+            line.lstrip("0123456789.-) ").strip()
+            for line in lines
+            if line and line[0].isdigit()
+        ]
+        if not recommendations:
+            recommendations = [raw]  # fallback: return raw text as single item
+
+        return RecommendResponse(
+            risk_category=req.risk_category,
+            recommendations=recommendations,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"AI recommendation failed: {e}")

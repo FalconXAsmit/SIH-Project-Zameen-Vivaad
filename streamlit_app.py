@@ -7,7 +7,11 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
+import requests
 import streamlit as st
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -198,5 +202,69 @@ if st.button("🔮 Predict Risk & Delay", type="primary", use_container_width=Tr
             with prob_cols[i]:
                 st.metric(cls, f"{risk_proba[i] * 100:.1f}%")
 
+        # Store in session state for AI recommendations
+        st.session_state["last_prediction"] = {
+            "risk_label": risk_label,
+            "delay_prob": delay_prob,
+            "project_data": {
+                "state": state, "district": district, "project_type": project_type,
+                "land_area_hectares": land_area, "affected_families": int(affected_families),
+                "compensation_status": comp_status, "compensation_disbursed_pct": comp_pct,
+                "approval_stage": approval_stage, "days_since_notification": int(days_notif),
+                "legal_disputes_count": int(legal_count),
+                "legal_dispute_status": legal_val if legal_val != "None" else None,
+                "possession_status": possession, "rehabilitation_progress_pct": rehab_pct,
+                "stakeholder_responsiveness_score": stakeholder_score,
+                "historical_district_delay_rate": hist_delay,
+                "inter_department_coordination_issues": coordination,
+                "planned_duration_days": int(planned_duration), "project_age_days": int(project_age),
+            },
+        }
+
     except Exception as e:
         st.error(f"Prediction failed: {e}")
+
+# ---------------------------------------------------------------------------
+# AI Recommendations (shown after prediction is stored in session state)
+# ---------------------------------------------------------------------------
+if "last_prediction" in st.session_state:
+    pred = st.session_state["last_prediction"]
+    st.divider()
+    st.subheader("🤖 AI Recommendations")
+    st.caption(f"Tailored strategies to reduce **{pred['risk_label']} Risk** for this project")
+
+    if st.button("✨ Generate AI Recommendations", use_container_width=True):
+        with st.spinner("Consulting AI expert..."):
+            try:
+                payload = {
+                    "project": pred["project_data"],
+                    "risk_category": pred["risk_label"],
+                    "delay_probability": pred["delay_prob"],
+                }
+                resp = requests.post(
+                    "http://localhost:8000/api/recommend",
+                    json=payload,
+                    timeout=30,
+                )
+                if resp.status_code == 200:
+                    recs = resp.json()["recommendations"]
+                    color_map = {"High": "#ff4b4b", "Medium": "#ffa500", "Low": "#21c354"}
+                    border_color = color_map.get(pred["risk_label"], "#4f8bf9")
+                    st.markdown(
+                        f"""
+                        <div style="border-left: 4px solid {border_color}; padding: 1rem 1.2rem; border-radius: 8px; background: #1e1e2e; margin-top: 0.5rem;">
+                        """ + "".join([
+                            f'<p style="margin: 0.5rem 0; color: #e0e0e0;">'
+                            f'<span style="color: {border_color}; font-weight: bold;">{i+1}.</span> {rec}</p>'
+                            for i, rec in enumerate(recs)
+                        ]) + "</div>",
+                        unsafe_allow_html=True,
+                    )
+                elif resp.status_code == 503:
+                    st.warning("⚠️ Groq API key not configured. Add your key to the `.env` file.")
+                else:
+                    st.error(f"API error {resp.status_code}: {resp.text}")
+            except requests.exceptions.ConnectionError:
+                st.error("❌ Could not connect to the FastAPI backend. Make sure it is running on port 8000.")
+            except Exception as e:
+                st.error(f"Recommendation failed: {e}")
