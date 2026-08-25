@@ -49,13 +49,18 @@ risk_classifier, delay_regressor, label_encoder = load_models()
 STATES = ["Bihar", "Gujarat", "Karnataka", "Madhya Pradesh", "Maharashtra",
           "Odisha", "Rajasthan", "Tamil Nadu", "Uttar Pradesh", "West Bengal"]
 
-DISTRICTS = ["Ahmedabad", "Aurangabad", "Bengaluru", "Bhopal", "Bhubaneswar",
-             "Chennai", "Coimbatore", "Cuttack", "Gaya", "Ghaziabad", "Gwalior",
-             "Howrah", "Hubballi", "Indore", "Jabalpur", "Jaipur", "Jodhpur",
-             "Kanpur", "Kolkata", "Kota", "Lucknow", "Madurai", "Meerut",
-             "Muzaffarpur", "Mysuru", "Nagpur", "Nashik", "Noida", "Patna",
-             "Pune", "Rajkot", "Rourkela", "Siliguri", "Surat", "Thane",
-             "Udaipur", "Vadodara", "Varanasi"]
+STATE_DISTRICTS = {
+    "Bihar": ["Gaya", "Muzaffarpur", "Patna"],
+    "Gujarat": ["Ahmedabad", "Rajkot", "Surat", "Vadodara"],
+    "Karnataka": ["Bengaluru", "Hubballi", "Mysuru"],
+    "Madhya Pradesh": ["Bhopal", "Gwalior", "Indore", "Jabalpur"],
+    "Maharashtra": ["Aurangabad", "Nagpur", "Nashik", "Pune", "Thane"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Udaipur"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
+    "Uttar Pradesh": ["Ghaziabad", "Kanpur", "Lucknow", "Meerut", "Noida", "Varanasi"],
+    "West Bengal": ["Howrah", "Kolkata", "Siliguri"],
+}
 
 PROJECT_TYPES = ["Airport Expansion", "Dam/Reservoir", "Industrial Corridor",
                  "Irrigation Canal", "National Highway", "Power Transmission Line",
@@ -103,7 +108,7 @@ with col1:
     land_area = st.number_input("Land Area (Hectares)", min_value=0.0, value=50.0, step=1.0)
     planned_duration = st.number_input("Planned Duration (Days)", min_value=1, value=730, step=1)
 with col2:
-    district = st.selectbox("District", DISTRICTS)
+    district = st.selectbox("District", STATE_DISTRICTS.get(state, []))
     affected_families = st.number_input("Affected Families", min_value=0, value=100, step=1)
     project_age = st.number_input("Project Age (Days)", min_value=0, value=900, step=1)
 
