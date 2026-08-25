@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
 from dotenv import load_dotenv
-from groq import Groq
+from groq import Groq   
 
 load_dotenv()
 

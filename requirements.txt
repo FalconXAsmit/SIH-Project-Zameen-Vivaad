@@ -10,3 +10,4 @@ pydantic==2.13.4
 groq==1.6.0
 python-dotenv==1.2.3
 requests==2.34.2
+plotly==6.9.0
