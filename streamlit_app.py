@@ -712,7 +712,7 @@ if "last_prediction" in st.session_state:
                         pred["project_data"], pred["risk_label"], pred["delay_prob"]
                     )
                     chat = groq_client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="openai/gpt-oss-120b",
                         messages=[
                             {"role": "system", "content": "You are a land acquisition and conflict resolution expert for Indian infrastructure projects."},
                             {"role": "user", "content": prompt},
