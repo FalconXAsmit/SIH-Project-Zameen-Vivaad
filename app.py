@@ -1,5 +1,5 @@
 """
-Zameen Vivaad — FastAPI backend for Land Acquisition Delay Prediction.
+LandGuard — FastAPI backend for Land Acquisition Delay Prediction.
 
 Endpoints:
   GET  /docs           → Swagger UI (interactive API docs)
@@ -27,7 +27,7 @@ load_dotenv()
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Zameen Vivaad — Land Acquisition Delay Predictor",
+    title="LandGuard — Land Acquisition Delay Predictor",
     description=(
         "AI-powered predictive analytics system for land acquisition delays. "
         "Submit project parameters and receive a risk category (Low / Medium / High) "

@@ -1,5 +1,5 @@
 """
-Streamlit frontend for Zameen Vivaad — Land Acquisition Delay Predictor.
+Streamlit frontend for LandGuard — Land Acquisition Delay Predictor.
 Loads the ML models directly and provides a polished light-mode form UI.
 """
 
@@ -18,7 +18,7 @@ load_dotenv()
 # Page config
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Zameen Vivaad — Delay Predictor",
+    page_title="LandGuard — Delay Predictor",
     page_icon="🏗️",
     layout="centered",
 )
@@ -408,7 +408,7 @@ CATEGORICAL_COLS = [
 # ---------------------------------------------------------------------------
 # Hero header
 # ---------------------------------------------------------------------------
-st.title("🏗️ Zameen Vivaad AI")
+st.title("🏗️ LandGuard AI")
 st.caption("AI-Powered Predictive Analytics for Land Acquisition Delays")
 
 # ---------------------------------------------------------------------------

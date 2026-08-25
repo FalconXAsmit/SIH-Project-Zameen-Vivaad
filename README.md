@@ -1,4 +1,4 @@
-# 🏗️ Zameen Vivaad — Land Acquisition Delay Predictor
+# 🏗️ LandGuard — Land Acquisition Delay Predictor
 
 AI-powered Predictive Analytics System for Land Acquisition Delays (SIH Project).
 
